@@ -1,0 +1,67 @@
+# =============================================================================
+# Language-Conditioned Agent Using RL - Dependencies
+# =============================================================================
+# This file lists all Python packages needed for the project.
+# Install with: pip install -r requirements.txt
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# ENVIRONMENT - The "game world" where our agent learns
+# -----------------------------------------------------------------------------
+# MiniGrid: Fast gridworld environments for RL research
+# - Why MiniGrid? It's fast (<1ms/step), procedural, and has language instructions
+# - Gymnasium is the modern fork of OpenAI Gym (standard RL interface)
+minigrid>=2.3.0
+gymnasium>=0.29.0
+
+# -----------------------------------------------------------------------------
+# RL FRAMEWORK - The "training engine" for our agent
+# -----------------------------------------------------------------------------
+# RLlib: Production-grade RL library from Ray
+# - Why RLlib? Scalable, supports custom models, industry standard
+# - ray[rllib] includes the core Ray + RLlib components
+ray[rllib]>=2.9.0
+
+# -----------------------------------------------------------------------------
+# LLM - The "language understanding brain"
+# -----------------------------------------------------------------------------
+# PyTorch: Deep learning framework (Metal-accelerated on M3 Mac)
+# Transformers: HuggingFace library for loading Llama 3.2
+# Accelerate: Efficient model loading and inference
+# BitsAndBytes: 4-bit quantization to fit LLMs in limited RAM
+#   Note: bitsandbytes has limited Mac support, we'll use alternatives if needed
+torch>=2.1.0
+transformers>=4.36.0
+accelerate>=0.25.0
+
+# -----------------------------------------------------------------------------
+# UTILITIES - Helper libraries
+# -----------------------------------------------------------------------------
+numpy>=1.24.0          # Numerical computing (arrays, math)
+pandas>=2.0.0          # Data manipulation (for trajectory analysis)
+jsonlines>=4.0.0       # Read/write JSONL files (trajectory storage)
+pyyaml>=6.0.0          # Config file parsing
+tqdm>=4.66.0           # Progress bars
+python-dotenv>=1.0.0   # Load .env files securely
+
+# -----------------------------------------------------------------------------
+# EXPERIMENT TRACKING - Monitor training progress
+# -----------------------------------------------------------------------------
+# Weights & Biases: Industry-standard experiment tracking
+# - Logs metrics, hyperparameters, and artifacts
+# - Free tier is generous for research
+wandb>=0.16.0
+
+# -----------------------------------------------------------------------------
+# DASHBOARD & DEMO - User interfaces
+# -----------------------------------------------------------------------------
+streamlit>=1.29.0      # Quick dashboards (for evaluation)
+gradio>=4.0.0          # ML demos (for interactive testing)
+plotly>=5.18.0         # Interactive plots
+
+# -----------------------------------------------------------------------------
+# DEVELOPMENT - Testing and notebooks
+# -----------------------------------------------------------------------------
+pytest>=7.4.0          # Unit testing
+jupyter>=1.0.0         # Notebooks for exploration
+ipywidgets>=8.1.0      # Interactive notebook widgets

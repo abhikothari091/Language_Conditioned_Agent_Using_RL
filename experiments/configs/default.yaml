@@ -1,0 +1,48 @@
+# Default experiment configuration
+#
+# This config is used when no custom config is specified.
+# Copy this file and modify for your own experiments.
+
+experiment:
+  name: "default"
+  seed: 42
+
+environment:
+  name: "BabyAI-GoToObj-v0"
+  max_steps: 64
+  use_dense_reward: true
+
+model:
+  # Grid encoder (CNN)
+  cnn_channels: [32, 64, 64]
+  grid_output_dim: 128
+  
+  # Subgoal encoder
+  subgoal_dim: 32
+  
+  # Policy head
+  hidden_dim: 256
+  output_dim: 256
+
+training:
+  # Behavior cloning
+  bc_epochs: 50
+  bc_batch_size: 64
+  bc_learning_rate: 0.001
+  
+  # PPO
+  ppo_iterations: 500
+  train_batch_size: 2048
+  learning_rate: 0.0003
+  gamma: 0.99
+  clip_param: 0.2
+  num_sgd_iter: 10
+  entropy_coeff: 0.01
+  
+  # Parallelization
+  num_workers: 2
+  num_envs_per_worker: 4
+
+# Tracking
+use_wandb: false
+wandb_project: "language_conditioned_agent"

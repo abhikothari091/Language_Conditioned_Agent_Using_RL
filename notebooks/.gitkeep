@@ -1,0 +1,5 @@
+# Placeholder - Jupyter notebooks should be opened in Jupyter
+# This file is created to maintain directory structure
+
+# To create the actual notebook, run:
+#   jupyter notebook notebooks/01_environment_exploration.ipynb
