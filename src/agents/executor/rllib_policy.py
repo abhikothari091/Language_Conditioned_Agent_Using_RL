@@ -64,17 +64,17 @@ except ImportError:
 # =============================================================================
 class MiniGridRLlibEnv(gym.Env):
     """
-    RLlib-compatible wrapper for MiniGrid.
+    RLlib-compatible wrapper for MiniGrid with FLAT observation space.
     
-    RLlib has specific requirements:
-    1. Must be a Gymnasium environment
-    2. Observation/action spaces must be defined
-    3. Should be picklable (for distributed training)
+    Key Design Decision:
+    --------------------
+    RLlib's default encoders don't support Dict observation spaces.
+    We flatten the observation to a single Box for compatibility:
+    - Image: 7x7x3 = 147 values (normalized to [0,1])
+    - Direction: 4 values (one-hot encoded)
+    - Total: 151 values
     
-    This wrapper:
-    - Wraps our MiniGridWrapper for RLlib
-    - Flattens complex observations to arrays
-    - Adds subgoal conditioning to observations
+    This allows using RLlib's built-in MLP encoder without custom models.
     """
     
     def __init__(self, config: Dict[str, Any]):
@@ -84,6 +84,8 @@ class MiniGridRLlibEnv(gym.Env):
         RLlib passes configuration as a dict.
         This is how we customize the environment per experiment.
         """
+        super().__init__()
+        
         # Import here to avoid circular imports
         from src.environment.minigrid_wrapper import MiniGridWrapper
         
@@ -101,30 +103,35 @@ class MiniGridRLlibEnv(gym.Env):
             seed=seed,
         )
         
-        # Define observation space for RLlib
-        # We flatten the observation to make it easier for RLlib
-        self.observation_space = spaces.Dict({
-            # Flattened grid: 7 * 7 * 3 = 147
-            "image": spaces.Box(
-                low=0, high=255,
-                shape=(7, 7, 3),
-                dtype=np.float32,
-            ),
-            # Direction: 0-3
-            "direction": spaces.Discrete(4),
-            # Subgoal encoding (action, color, object indices)
-            "subgoal": spaces.Box(
-                low=0, high=10,
-                shape=(3,),
-                dtype=np.int32,
-            ),
-        })
+        # FLAT observation space for RLlib compatibility
+        # 7*7*3 (image) + 4 (one-hot direction) = 151
+        self.observation_space = spaces.Box(
+            low=0.0, high=1.0, shape=(151,), dtype=np.float32
+        )
         
         # Action space
         self.action_space = self.env.action_space
         
-        # Current subgoal (set externally or defaults)
-        self.current_subgoal = np.array([0, 0, 0], dtype=np.int32)
+        # Store instruction for reference
+        self._current_instruction = ""
+    
+    def _flatten_obs(self, obs: Dict[str, Any]) -> np.ndarray:
+        """
+        Convert MiniGrid dict observation to flat vector.
+        
+        Returns:
+            np.ndarray of shape (151,):
+                - First 147: Flattened 7x7x3 image, normalized to [0,1]
+                - Last 4: One-hot encoded direction
+        """
+        # Normalize image to [0, 1] (max value in MiniGrid is ~10)
+        image = obs["image"].flatten().astype(np.float32) / 10.0
+        
+        # One-hot encode direction (0-3)
+        direction = np.zeros(4, dtype=np.float32)
+        direction[obs["direction"]] = 1.0
+        
+        return np.concatenate([image, direction])
     
     def reset(
         self,
@@ -134,32 +141,18 @@ class MiniGridRLlibEnv(gym.Env):
     ):
         """Reset environment."""
         obs, info = self.env.reset(seed=seed, options=options)
-        
-        # Convert to RLlib format
-        rllib_obs = {
-            "image": obs["image"].astype(np.float32),
-            "direction": obs["direction"],
-            "subgoal": self.current_subgoal,
-        }
-        
-        return rllib_obs, info
+        self._current_instruction = obs.get("instruction", "")
+        return self._flatten_obs(obs), info
     
     def step(self, action: int):
         """Take a step."""
         obs, reward, terminated, truncated, info = self.env.step(action)
-        
-        # Convert to RLlib format
-        rllib_obs = {
-            "image": obs["image"].astype(np.float32),
-            "direction": obs["direction"],
-            "subgoal": self.current_subgoal,
-        }
-        
-        return rllib_obs, reward, terminated, truncated, info
+        return self._flatten_obs(obs), reward, terminated, truncated, info
     
-    def set_subgoal(self, action_idx: int, color_idx: int, object_idx: int):
-        """Set the current subgoal for conditioning."""
-        self.current_subgoal = np.array([action_idx, color_idx, object_idx], dtype=np.int32)
+    @property
+    def instruction(self) -> str:
+        """Get the current instruction."""
+        return self._current_instruction
     
     def render(self):
         """Render the environment."""
