@@ -42,13 +42,27 @@ jupyter notebook notebooks/01_environment_exploration.ipynb
 
 ### 3. Train the Agent
 
+#### Option A: Local Training (MacBook M3 Pro)
 ```bash
-# Behavior cloning warm-start
-python scripts/train_bc.py
-
-# PPO fine-tuning
-python scripts/train_ppo.py
+# Quick test (5-10 minutes)
+python scripts/train_bc.py --num-demos 200 --epochs 20
+python scripts/train_ppo.py --iterations 50
 ```
+
+#### Option B: Full Training on Google Colab (Recommended)
+```bash
+# Upload notebooks/train_on_colab.ipynb to Colab
+# Runtime → Change runtime type → T4 GPU
+# Run all cells (~1-2 hours for 500 iterations)
+# Download trained_model.zip when complete
+```
+
+**Training Times:**
+| Task | MacBook M3 | Colab GPU |
+|------|------------|-----------|
+| BC (500 demos) | ~15 min | ~5 min |
+| PPO (100 iter) | ~30 min | ~15 min |
+| PPO (500 iter) | ~3 hours | ~1 hour |
 
 ### 4. Evaluate and Demo
 

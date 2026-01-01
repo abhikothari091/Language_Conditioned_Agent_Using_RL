@@ -1089,10 +1089,25 @@ You now understand:
 - ✅ How to use each key library
 
 **Next Steps:**
-1. Run `python scripts/train_bc.py` to try BC training
-2. Run `python scripts/train_ppo.py` to see PPO in action
-3. Modify the prompts in `prompts.py` and see how it affects planning
-4. Experiment with different environments (GoToObj → PutNextLocal)
-5. Try adding your own metrics or failure categories
+
+### Local Training (Quick Test)
+```bash
+cd Language_Conditioned_Agent_Using_RL
+source venv/bin/activate
+python scripts/train_bc.py --num-demos 200 --epochs 20
+python scripts/train_ppo.py --iterations 50
+```
+
+### Full Training on Google Colab (Recommended)
+1. Upload `notebooks/train_on_colab.ipynb` to Colab
+2. Runtime → Change runtime type → T4 GPU
+3. Run all cells (~1-2 hours for 500 iterations)
+4. Download `trained_model.zip` and extract locally
+
+**Experiments to Try:**
+1. Modify prompts in `prompts.py` and see how it affects planning
+2. Experiment with different environments: `GoToObj` → `PickupLoc` → `PutNextLocal`
+3. Add your own metrics or failure categories
+4. Try different PPO hyperparameters (lr, clip_param, entropy_coeff)
 
 Happy learning! 🚀

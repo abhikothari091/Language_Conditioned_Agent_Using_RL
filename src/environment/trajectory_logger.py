@@ -316,7 +316,9 @@ class TrajectoryLogger:
     def _save_episode(self, episode: Episode) -> None:
         """Append episode to JSONL file."""
         with open(self.filepath, "a") as f:
-            json.dump(episode.to_dict(), f)
+            # Clean the entire dict to handle numpy types
+            clean_dict = self._clean_for_json(episode.to_dict())
+            json.dump(clean_dict, f)
             f.write("\n")
     
     def _convert_observation(self, obs: Dict[str, Any]) -> Dict[str, Any]:
