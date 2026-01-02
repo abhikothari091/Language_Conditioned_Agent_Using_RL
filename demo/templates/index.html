@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RL Agent Demo - Language-Conditioned Navigation</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🤖 RL Agent Demo</h1>
+            <p class="subtitle">Language-Conditioned Navigation in MiniGrid</p>
+        </header>
+        
+        <main>
+            <div class="game-panel">
+                <div class="instruction-box">
+                    <span class="label">🎯 Task:</span>
+                    <span id="instruction" class="instruction-text">Click "New Episode" to start</span>
+                </div>
+                
+                <div class="grid-container">
+                    <img id="grid" src="" alt="MiniGrid Environment">
+                    <div id="overlay" class="overlay hidden">
+                        <div id="result-icon"></div>
+                        <div id="result-text"></div>
+                    </div>
+                </div>
+                
+                <div class="controls">
+                    <button id="resetBtn" class="btn btn-primary">🔄 New Episode</button>
+                    <button id="stepBtn" class="btn btn-secondary" disabled>▶️ Step</button>
+                    <button id="autoBtn" class="btn btn-accent" disabled>⏩ Auto-Play</button>
+                </div>
+                
+                <div class="step-counter">
+                    Step: <span id="stepCount">0</span>
+                </div>
+            </div>
+            
+            <div class="info-panel">
+                <div class="stats-box">
+                    <h3>📊 Session Stats</h3>
+                    <div class="stat-row">
+                        <span>Episodes:</span>
+                        <span id="totalEpisodes">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Successes:</span>
+                        <span id="successCount">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Success Rate:</span>
+                        <span id="successRate">-</span>
+                    </div>
+                </div>
+                
+                <div class="actions-box">
+                    <h3>📝 Actions</h3>
+                    <div id="actionsList" class="actions-list">
+                        <span class="placeholder">No actions yet</span>
+                    </div>
+                </div>
+                
+                <div class="legend-box">
+                    <h3>🎮 Legend</h3>
+                    <div class="legend-item"><span class="color-box red"></span> Agent</div>
+                    <div class="legend-item"><span class="color-box green"></span> Goal Object</div>
+                    <div class="legend-item"><span class="color-box gray"></span> Wall</div>
+                </div>
+            </div>
+        </main>
+        
+        <footer>
+            <p>Trained with PPO on BabyAI-GoToObj • <a href="https://github.com/abhikothari091/Language_Conditioned_Agent_Using_RL" target="_blank">GitHub</a></p>
+        </footer>
+    </div>
+    
+    <script>
+        const gridImg = document.getElementById('grid');
+        const instructionEl = document.getElementById('instruction');
+        const stepCountEl = document.getElementById('stepCount');
+        const actionsListEl = document.getElementById('actionsList');
+        const overlayEl = document.getElementById('overlay');
+        const resultIconEl = document.getElementById('result-icon');
+        const resultTextEl = document.getElementById('result-text');
+        const totalEpisodesEl = document.getElementById('totalEpisodes');
+        const successCountEl = document.getElementById('successCount');
+        const successRateEl = document.getElementById('successRate');
+        
+        const resetBtn = document.getElementById('resetBtn');
+        const stepBtn = document.getElementById('stepBtn');
+        const autoBtn = document.getElementById('autoBtn');
+        
+        let autoPlaying = false;
+        let autoInterval = null;
+        
+        function updateDisplay(data) {
+            if (data.frame) {
+                gridImg.src = 'data:image/png;base64,' + data.frame;
+            }
+            instructionEl.textContent = data.instruction || 'Loading...';
+            stepCountEl.textContent = data.step || 0;
+            
+            if (data.actions && data.actions.length > 0) {
+                actionsListEl.innerHTML = data.actions.map((a, i) => 
+                    `<span class="action-chip">${i+1}. ${a}</span>`
+                ).join('');
+            } else {
+                actionsListEl.innerHTML = '<span class="placeholder">No actions yet</span>';
+            }
+            
+            if (data.stats) {
+                totalEpisodesEl.textContent = data.stats.episodes;
+                successCountEl.textContent = data.stats.successes;
+                if (data.stats.episodes > 0) {
+                    const rate = (data.stats.successes / data.stats.episodes * 100).toFixed(0);
+                    successRateEl.textContent = rate + '%';
+                }
+            }
+            
+            if (data.done) {
+                stepBtn.disabled = true;
+                autoBtn.disabled = true;
+                
+                if (data.success) {
+                    resultIconEl.textContent = '🎉';
+                    resultTextEl.textContent = `SUCCESS in ${data.step} steps!`;
+                    overlayEl.className = 'overlay success';
+                } else {
+                    resultIconEl.textContent = '❌';
+                    resultTextEl.textContent = 'Failed';
+                    overlayEl.className = 'overlay failure';
+                }
+                
+                stopAutoPlay();
+            }
+        }
+        
+        async function reset() {
+            overlayEl.className = 'overlay hidden';
+            stepBtn.disabled = true;
+            autoBtn.disabled = true;
+            stopAutoPlay();
+            
+            try {
+                const response = await fetch('/api/reset');
+                const data = await response.json();
+                updateDisplay(data);
+                stepBtn.disabled = false;
+                autoBtn.disabled = false;
+            } catch (err) {
+                console.error('Reset error:', err);
+            }
+        }
+        
+        async function step() {
+            try {
+                const response = await fetch('/api/step');
+                const data = await response.json();
+                updateDisplay(data);
+                return data.done;
+            } catch (err) {
+                console.error('Step error:', err);
+                return true;
+            }
+        }
+        
+        function startAutoPlay() {
+            autoPlaying = true;
+            autoBtn.textContent = '⏸️ Pause';
+            autoInterval = setInterval(async () => {
+                const done = await step();
+                if (done) stopAutoPlay();
+            }, 300);
+        }
+        
+        function stopAutoPlay() {
+            autoPlaying = false;
+            autoBtn.textContent = '⏩ Auto-Play';
+            if (autoInterval) {
+                clearInterval(autoInterval);
+                autoInterval = null;
+            }
+        }
+        
+        resetBtn.addEventListener('click', reset);
+        stepBtn.addEventListener('click', step);
+        autoBtn.addEventListener('click', () => {
+            if (autoPlaying) {
+                stopAutoPlay();
+            } else {
+                startAutoPlay();
+            }
+        });
+        
+        // Initialize
+        reset();
+    </script>
+</body>
+</html>
