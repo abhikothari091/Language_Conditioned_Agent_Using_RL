@@ -1,135 +1,156 @@
 # Language-Conditioned Agent Using RL
 
-A language-conditioned reinforcement learning agent that follows multi-step natural language instructions in MiniGrid/BabyAI environments.
+A language-conditioned reinforcement learning agent that follows natural language instructions in MiniGrid/BabyAI environments.
 
 ## 🎯 Project Overview
 
-This project implements a **hybrid LLM + RL architecture**:
-- **LLM Planner** (Llama 3.2): Parses natural language instructions into subgoals
-- **RL Executor** (RLlib PPO): Learns to execute subgoals efficiently
+This project implements a **PPO-trained RL agent** that navigates to objects based on language instructions like "go to the red ball".
 
+**Key Results:**
+- ✅ **92.7% success rate** on BabyAI-GoToObj-v0
+- ✅ **~5 steps average** to complete tasks
+- ✅ **Trained on Google Colab** with T4 GPU (~30 min)
+
+## 🎮 Try the Interactive Demo
+
+```bash
+# Activate Python 3.12 environment
+source venv312/bin/activate
+
+# Start the demo server
+python demo/app.py
+
+# Open in browser
+open http://localhost:5001
 ```
-Instruction: "Pick up the blue key, then open the yellow door"
-    ↓
-LLM Planner → ["navigate_to(blue_key)", "pickup()", "navigate_to(yellow_door)", "open()"]
-    ↓
-RL Executor → [↑, →, →, pickup, ←, ←, ↓, open] → Success!
-```
+
+![Demo](demo/demo_screenshot.png)
+
+**Features:**
+- 🔄 **New Episode** - Generate new task
+- ▶️ **Step** - Watch one action at a time
+- ⏩ **Auto-Play** - Animate full episode
+
+---
 
 ## 🚀 Quick Start
 
 ### 1. Setup Environment
 
 ```bash
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+# Create Python 3.12 virtual environment (required for model compatibility)
+python3.12 -m venv venv312
+source venv312/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
-
-# Set up environment variables
-cp .env.example .env
-# Edit .env with your HuggingFace token
+pip install 'ray[rllib]==2.51.2'
 ```
 
-### 2. Test the Environment
+### 2. Use Pre-Trained Model
+
+The trained model is in `experiments/checkpoints/final/`.
 
 ```bash
-# Run environment exploration notebook
-jupyter notebook notebooks/01_environment_exploration.ipynb
+# Run evaluation
+python scripts/load_trained_model.py --checkpoint experiments/checkpoints/final --episodes 100
+
+# Interactive demo
+python demo/app.py
 ```
 
-### 3. Train the Agent
+### 3. Train Your Own (Optional)
 
-#### Option A: Local Training (MacBook M3 Pro)
+**Option A: Google Colab (Recommended)**
+1. Upload `notebooks/train_on_colab.ipynb` to Colab
+2. Runtime → Change runtime type → **T4 GPU**
+3. Run all cells (~30-45 min for 200 iterations)
+4. Download `trained_model.zip`
+
+**Option B: Local Training**
 ```bash
-# Quick test (5-10 minutes)
-python scripts/train_bc.py --num-demos 200 --epochs 20
-python scripts/train_ppo.py --iterations 50
+python scripts/train_ppo.py --iterations 200
 ```
 
-#### Option B: Full Training on Google Colab (Recommended)
-```bash
-# Upload notebooks/train_on_colab.ipynb to Colab
-# Runtime → Change runtime type → T4 GPU
-# Run all cells (~1-2 hours for 500 iterations)
-# Download trained_model.zip when complete
-```
-
-**Training Times:**
-| Task | MacBook M3 | Colab GPU |
-|------|------------|-----------|
-| BC (500 demos) | ~15 min | ~5 min |
-| PPO (100 iter) | ~30 min | ~15 min |
-| PPO (500 iter) | ~3 hours | ~1 hour |
-
-### 4. Evaluate and Demo
-
-```bash
-# Launch evaluation dashboard
-streamlit run dashboard/app.py
-
-# Launch interactive demo
-python demo/interactive_demo.py
-```
+---
 
 ## 📁 Project Structure
 
 ```
+├── demo/                   # Interactive web demo
+│   ├── app.py              # Flask server
+│   └── templates/          # HTML frontend
+├── experiments/
+│   └── checkpoints/        # Trained model weights
+├── notebooks/
+│   ├── train_on_colab.ipynb    # Colab training notebook
+│   └── demo.ipynb              # Local demo notebook
+├── scripts/
+│   ├── load_trained_model.py   # Load & evaluate model
+│   └── evaluate_model.py       # Simple evaluation
 ├── src/
-│   ├── environment/      # MiniGrid wrappers & trajectory logging
-│   ├── agents/
-│   │   ├── planner/      # LLM-based instruction parser
-│   │   └── executor/     # RLlib PPO policy
-│   ├── training/         # BC + RL training pipelines
-│   └── evaluation/       # Metrics and analysis
-├── data/                 # Trajectories and demonstrations
-├── experiments/          # Configs and checkpoints
-├── dashboard/            # Streamlit evaluation UI
-├── demo/                 # Gradio interactive demo
-├── notebooks/            # Jupyter exploration
-└── tests/                # Unit tests
+│   ├── environment/        # MiniGrid wrappers
+│   └── agents/executor/    # RLlib PPO policy
+└── LEARNING.md             # Comprehensive learning guide
 ```
 
-## 🧠 Key Concepts
+---
 
-### Why Hybrid LLM + RL?
+## 📊 Training Results
 
-| Approach | Pros | Cons |
-|----------|------|------|
-| Pure LLM | Great language understanding | Slow, expensive, poor control |
-| Pure RL | Fast, learns optimal control | Poor language grounding |
-| **Hybrid** | **Best of both worlds** | Slightly more complex |
+| Metric | Value |
+|--------|-------|
+| Final Success Rate | 92.7% |
+| Average Episode Length | 5.2 steps |
+| Training Iterations | 200 |
+| Training Time (Colab T4) | ~30 minutes |
 
-### Training Pipeline
+### Training Curve
 
-1. **Behavior Cloning**: Learn from expert demonstrations (warm start)
-2. **PPO Fine-tuning**: Optimize for efficiency and generalization
-3. **Curriculum Learning**: Start easy, gradually increase difficulty
+The agent learns rapidly, reaching ~90% success within 50 iterations:
 
-## 📊 Metrics
-
-- **Success Rate**: % of episodes completed correctly
-- **SPL**: Success weighted by Path Length (efficiency)
-- **Generalization**: Performance on unseen instruction templates
-
-## 🛠️ Development
-
-```bash
-# Run tests
-pytest tests/ -v
-
-# Format code
-black src/ tests/
+```
+Iter  10: reward=0.366, len=42.4
+Iter  50: reward=0.922, len=5.5
+Iter 100: reward=0.924, len=5.4
+Iter 200: reward=0.927, len=5.2
 ```
 
-## 📚 References
+---
 
-- [MiniGrid Documentation](https://minigrid.farama.org/)
-- [BabyAI Paper](https://arxiv.org/abs/1810.08272)
-- [RLlib Documentation](https://docs.ray.io/en/latest/rllib/index.html)
-- [Llama 3.2 on HuggingFace](https://huggingface.co/meta-llama)
+## 🛠️ Technical Details
+
+### Environment
+- **BabyAI-GoToObj-v0**: Navigate to a specified object
+- **Observation**: 7×7×3 grid (flattened to 151 floats)
+- **Actions**: 7 discrete (left, right, forward, pickup, drop, toggle, done)
+
+### Model Architecture
+- **Algorithm**: PPO (Proximal Policy Optimization)
+- **Network**: MLP with [256, 256] hidden layers
+- **Framework**: RLlib + PyTorch
+
+### Key Configuration (for training)
+```python
+PPOConfig()
+.api_stack(enable_rl_module_and_learner=False, ...)  # Use stable OLD API
+.environment(env="MiniGridFlat-v0")
+.training(train_batch_size=2048, lr=3e-4, gamma=0.99)
+.env_runners(num_env_runners=2, num_envs_per_env_runner=4)
+```
+
+---
+
+## 📚 Learn More
+
+See [LEARNING.md](LEARNING.md) for a comprehensive guide covering:
+- Reinforcement Learning fundamentals
+- MiniGrid/BabyAI environments
+- PPO algorithm explained
+- RLlib training pipeline
+- Troubleshooting common issues
+
+---
 
 ## 📝 License
 
